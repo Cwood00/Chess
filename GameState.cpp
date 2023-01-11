@@ -17,8 +17,10 @@ GameState::GameState()
     gameIsDraw = false;
     movesSinceLastCaptureOrPawnMove = 0;
     setWhiteLegalMoves();
+    previousGameStates = new list<GameState>;
 }
-//The copy constructor does not copy the list of legal moves, nor does it copy the list of previous game states
+//The copy constructor does not copy the list of legal moves,
+//and it only does a shallow copy the list of previous game states
 GameState::GameState(const GameState &oldGameState)
 {
     for(int row = 0; row < 8; row++)
@@ -36,6 +38,7 @@ GameState::GameState(const GameState &oldGameState)
     this->blackHasWon = oldGameState.blackHasWon;
     this->gameIsDraw = oldGameState.gameIsDraw;
     this->movesSinceLastCaptureOrPawnMove = oldGameState.movesSinceLastCaptureOrPawnMove;
+    this->previousGameStates = oldGameState.previousGameStates;
 }
 
 void GameState::displayBoardWhitePOV() const
@@ -92,7 +95,7 @@ bool GameState::checkForDrawByRepetition() const
     int repetitions = 1;
     int movesToCheck = movesSinceLastCaptureOrPawnMove - 1;
 
-    for (auto iter = previousGameStates.rbegin(); movesToCheck > 0; iter++, movesToCheck -=2)
+    for (auto iter = previousGameStates->rbegin(); movesToCheck > 0; iter++, movesToCheck -=2)
     {
         //Ever other can be skipped, as a different player will have the turn
         iter++;
@@ -130,12 +133,12 @@ void GameState::movePiece(const moveStruct &move)
         {
             if (move.toColumn == 2)
             {
-                board[7][3] = 'R';
+                board[7][3] = 'r';
                 board[7][0] = '_';
             }
             else if (move.toColumn == 6)
             {
-                board[7][5] = 'R';
+                board[7][5] = 'r';
                 board[7][7] = '_';
             }
         }
@@ -152,9 +155,8 @@ void GameState::movePiece(const moveStruct &move)
 }
 //Validates a move, and attempts to make it. Returns true if the move is valid and false otherwise.
 //Also updates other relevant game data.
-bool GameState::makeMove(const moveStruct &move)
+bool GameState::makeMove(const moveStruct &move, bool validMove, bool addToListOfGameStates)
 {
-    bool validMove = false;
     char movedPiece = board[move.fromRow][move.fromColumn];
     char movedOnto = board[move.toRow][move.toColumn];
 
@@ -169,7 +171,8 @@ bool GameState::makeMove(const moveStruct &move)
     if (validMove)
     {
         //Add the current game state to the list of previous game states
-        previousGameStates.emplace_back(*this);
+        if (addToListOfGameStates)
+            previousGameStates->emplace_back(*this);
         //Clear out the list of legal moves
         legalMoves.clear();
         //Make the move
@@ -257,7 +260,7 @@ bool GameState::makeMove(const moveStruct &move)
                     gameIsDraw = true;
             }
             //Check for draw by repetition
-            if (!gameIsDraw && movesSinceLastCaptureOrPawnMove > 3)
+            if (!gameIsDraw && movesSinceLastCaptureOrPawnMove > 7)
                 gameIsDraw = checkForDrawByRepetition();
         }
     }
@@ -899,8 +902,6 @@ void GameState::setWhiteLegalMoves()
         {
             switch (board[row][column])
             {
-                case '_':
-                    break;
                 case 'P':
                     move.fromRow = row;
                     move.fromColumn = column;
@@ -1376,8 +1377,6 @@ void GameState::setBlackLegalMoves()
         {
             switch (board[row][column])
             {
-                case '_':
-                    break;
                 case 'p':
                     move.fromRow = row;
                     move.fromColumn = column;
@@ -1809,6 +1808,11 @@ void GameState::resign()
         whiteHasWon = true;
 }
 
+void GameState::declareDraw()
+{
+    gameIsDraw = true;
+}
+
 bool GameState::hasGameEnded() const
 {
     return whiteHasWon || blackHasWon || gameIsDraw;
@@ -1829,4 +1833,44 @@ bool GameState::operator==(const GameState &rightHandSide) const
             areEqual = this->board[row][column] == rightHandSide.board[row][column];
 
     return areEqual;
+}
+
+bool GameState::getWhiteToMove() const
+{
+    return whiteToMove;
+}
+
+bool GameState::getWhiteHasWon() const
+{
+    return whiteHasWon;
+}
+
+bool GameState::getBlackHasWon() const
+{
+    return blackHasWon;
+}
+
+bool GameState::getGameIsDraw() const
+{
+    return gameIsDraw;
+}
+
+bool GameState::getWhiteKingSideCastlePrivilege() const
+{
+    return whiteKingSideCastlePrivilege;
+}
+
+bool GameState::getWhiteQueenSideCastlePrivilege() const
+{
+    return whiteQueenSideCastlePrivilege;
+}
+
+bool GameState::getBlackKingSideCastlePrivilege() const
+{
+    return blackKingSideCastlePrivilege;
+}
+
+bool GameState::getBlackQueenSideCastlePrivilege() const
+{
+    return blackQueenSideCastlePrivilege;
 }

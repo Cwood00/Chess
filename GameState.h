@@ -19,7 +19,7 @@ struct moveStruct
     char promotion;
 
     moveStruct()
-    {}
+    = default;
 
     moveStruct(int _fromRow, int _fromColumn, int _toRow, int _toColumn, char _promotion)
     {
@@ -45,15 +45,19 @@ private:
             {'p','p','p','p','p','p','p','p'},
             {'r','n','b','q','k','b','n','r'}
     };
+    list<moveStruct> legalMoves;
+    list<GameState> *previousGameStates;
     bool whiteKingSideCastlePrivilege;
     bool whiteQueenSideCastlePrivilege;
     bool blackKingSideCastlePrivilege;
     bool blackQueenSideCastlePrivilege;
+    bool whiteToMove;
+    bool whiteHasWon;
+    bool blackHasWon;
+    bool gameIsDraw;
     int enPassantRow;
     int enPassantColumn;
     int movesSinceLastCaptureOrPawnMove;
-    list<moveStruct> legalMoves;
-    list<GameState> previousGameStates;
 
     bool movesIntoCheck(const moveStruct &move, int kingRow, int kingColumn);
     void setWhiteLegalMoves();
@@ -66,21 +70,30 @@ private:
     bool checkForDrawByRepetition() const;
 
 public:
-    bool whiteToMove;
-    bool whiteHasWon;
-    bool blackHasWon;
-    bool gameIsDraw;
 
     GameState();
     GameState(const GameState &oldGameState);
     void displayBoardWhitePOV() const;
     void displayBoardBlackPOV() const;
-    bool makeMove(const moveStruct &move);
+    bool getWhiteToMove() const;
+    bool getWhiteHasWon() const;
+    bool getBlackHasWon() const;
+    bool getGameIsDraw () const;
+    bool getWhiteKingSideCastlePrivilege() const;
+    bool getWhiteQueenSideCastlePrivilege() const;
+    bool getBlackKingSideCastlePrivilege() const;
+    bool getBlackQueenSideCastlePrivilege() const;
+    bool makeMove(const moveStruct &move, bool validMove = false, bool addToListOfGameStates = true);
     void resign();
+    void declareDraw();
     bool hasGameEnded() const;
     bool getWhiteIsInCheck() const;
     bool getBlackIsInCheck() const;
     bool operator == (const GameState &rightHandSide) const;
+
+    friend int recursiveScoreMove(const moveStruct &move, GameState gameState, bool addToListOfGameState, int currentDepth);
+    friend void makeComputerMove(GameState &currentGameState);
+    friend int finalScoreGameState(const GameState &gameState);
 
 };
 

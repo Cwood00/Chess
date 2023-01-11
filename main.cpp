@@ -3,78 +3,77 @@
 #include "GameState.h"
 using namespace std;
 
-#define maxComputerDepth 6
+#define MAX_COMPUTER_DEPTH 4
 
 //Constants used by the computer to determine the value of having a piece on a specific square
-const float pawnPoints[8][8] = {
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {1.1 ,1.1 ,1.1 ,1.0 ,1.0 ,1.1 ,1.1 ,1.1 },
-        {1.05,1.02 ,1.0 ,1.05,1.05,1.0 ,1.02 ,1.05},
-        {0.9 ,0.9 ,0.9 ,1.15,1.15,0.9 ,0.9 ,0.9 },
-        {1.0 ,1.0 ,1.0 ,1.15,1.15,1.0 ,1.0 ,1.0 },
-        {1.1 ,1.1 ,1.1 ,1.15,1.15,1.1 ,1.1 ,1.1 },
-        {1.2 ,1.2 ,1.2 ,1.2 ,1.2 ,1.2 ,1.2 ,1.2 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0}
+const int PAWN_POINTS[8][8] = {
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {115,115,115,95 ,95 ,115,115,115},
+        {107,105,100,100,100,100,105,107},
+        {90 ,90 ,90 ,115,115,90 ,90 ,90 },
+        {100,100,100,115,115,100,100,100},
+        {110,110,110,115,115,110,110,110},
+        {120,120,120,120,120,120,120,120},
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  }
 };
-const float kingPoints[8][8] = {
-        {0.1 ,0.2 ,0.05,0.0 ,0.0 ,0.05,0.23,0.13},
-        {0.5 ,0.1 ,0.0,-0.05,-0.05,0.0,0.13,0.08},
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
-        {0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 ,0.0 },
+const int KING_POINTS[8][8] = {
+        {10 ,20 ,5  ,0  ,0  ,5  ,23 ,13 },
+        {10 ,5  ,0  ,-5 ,-5 ,0  ,13 ,8  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  },
+        {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  }
 };
-const float queenPoints[8][8] = {
-        {8.85,8.85,8.85,8.8 ,8.85,8.85,8.85,8.85},
-        {9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 },
-        {9.0 ,9.0 ,9.05,9.05,9.05,9.05,9.0 ,9.0 },
-        {9.0 ,9.05,9.05,9.05,9.05,9.05,9.05,9.0 },
-        {9.0 ,9.05,9.05,9.05,9.05,9.05,9.05,9.0 },
-        {9.0 ,9.0 ,9.05,9.05,9.05,9.05,9.0 ,9.0 },
-        {9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 },
-        {8.9 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,9.0 ,8.9 },
+const int QUEEN_POINTS[8][8] = {
+        {885,885,885,885,885,885,885,885},
+        {900,900,900,900,900,900,900,900},
+        {900,900,905,905,905,905,900,900},
+        {900,905,905,905,905,905,905,900},
+        {900,905,905,905,905,905,905,900},
+        {900,900,905,905,905,905,900,900},
+        {900,900,900,900,900,900,900,900},
+        {890,900,900,900,900,900,900,890}
 };
-const float knightPoints[8][8] = {
-        {2.8 ,2.8 ,2.85,2.85,2.85,2.85,2.8 ,2.8 },
-        {2.85,2.95,3.0 ,3.05,3.05,3.0 ,2.95,2.85},
-        {2.85,3.0 ,3.05,3.05,3.05,3.05,3.0 ,2.85},
-        {2.85,3.02,3.07,3.08,3.08,3.07,3.02,2.85},
-        {2.95,3.08,3.1 ,3.11,3.11,3.1 ,3.08,2.95},
-        {2.95,3.1 ,3.12,3.13,3.13,3.12,3.1 ,2.95},
-        {2.9 ,3.0 ,3.05,3.05,3.05,3.05,3.0 ,2.9},
-        {2.5 ,2.95,2.97,3.0 ,3.0 ,2.97,2.95,2.5}
+const int KNIGHT_POINTS[8][8] = {
+        {280,280,285,285,285,285,280,280},
+        {285,295,300,305,305,300,295,285},
+        {285,300,305,305,305,305,300,285},
+        {285,302,307,308,308,307,302,285},
+        {295,308,310,311,311,310,308,295},
+        {295,310,312,313,313,312,310,295},
+        {290,300,305,305,305,305,300,290},
+        {250,295,297,300,300,297,295,250}
 };
-const float rookPoints[8][8] = {
-        {5.0 ,5.05,5.1 ,5.07,5.07,5.1 ,5.05,5.0 },
-        {4.95,4.95,5.0 ,5.0 ,5.0 ,5.0 ,4.95,4.95},
-        {4.95,4.95,4.95,4.95,4.95,4.95,4.95,4.95},
-        {4.95,4.95,4.95,4.95,4.95,4.95,4.95,4.95},
-        {4.95,4.95,4.95,4.95,4.95,4.95,4.95,4.95},
-        {4.95,4.95,4.95,4.95,4.95,4.95,4.95,4.95},
-        {5.03,5.04,5.05,5.05,5.05,5.05,5.04,5.03},
-        {5.0 ,5.0 ,5.0 ,5.0 ,5.0 ,5.0 ,5.0 ,5.0 }
+const int ROOK_POINTS[8][8] = {
+        {500,505,510,507,507,510,505,500},
+        {495,495,500,500,500,500,495,495},
+        {495,495,495,495,495,495,495,495},
+        {495,495,495,495,495,495,495,495},
+        {495,495,495,495,495,495,495,495},
+        {495,495,495,495,495,495,495,495},
+        {503,504,505,505,505,505,504,503},
+        {500,500,500,500,500,500,500,500}
 };
-const float bishopPoints[8][8] = {
-        {3.0 ,2.9 ,2.85,2.85,2.85,2.85,2.9 ,3.0 },
-        {3.0 ,3.1 ,3.0 ,3.0 ,3.0 ,3.0 ,3.1 ,3.0 },
-        {2.95,3.0 ,3.03,3.0 ,3.0 ,3.03,3.0, 2.95},
-        {2.95,3.0 ,3.05,3.03,3.03,3.05,3.0 ,2.95},
-        {2.95,3.08,3.0 ,3.02,3.02,3.0 ,3.08,2.95},
-        {2.95,3.0 ,3.0 ,3.02,3.02,3.0 ,3.0 ,2.95},
-        {3.0 ,2.98,2.98,2.98,2.98,2.98,2.98,3.0 },
-        {2.9 ,2.9 ,2.9 ,2.9 ,2.9 ,2.9 ,2.9 ,2.9 }
+const int BISHOP_POINTS[8][8] = {
+        {300,290,285,285,285,285,290,300},
+        {300,310,300,300,300,300,310,300},
+        {295,300,303,300,300,303,300,295},
+        {295,300,305,303,303,305,300,295},
+        {295,308,300,302,302,300,308,295},
+        {295,300,300,302,302,300,300,295},
+        {300,298,298,298,298,298,298,300},
+        {290,290,290,290,290,290,290,290}
 };
 
 //Function prototypes
 bool makePlayerMove(GameState &currentGameState, const string &playerMove);
 void displayHelpMessage();
-float finalScoreGameState(const GameState &gameState);
 void stringToLower(string &inputString);
 
 //Set to true to enable debugging output
-const bool DEBUG = false;
+const bool DEBUG = true;
 
 int main()
 {
@@ -82,15 +81,39 @@ int main()
     bool moveHasBeenMade;
     bool hasResigned = false;
     bool drawnByAgreement = false;
-
+    bool computerPlaysWhite = false;
+    bool computerPlaysBlack = false;
     string playerMove;
+
+    //Determine if the player wants to do PvP or PvE
+    cout << "How many human players (1 or 2): ";
+    do
+    {
+        cin >> playerMove;
+    }while(playerMove != "1" && playerMove != "2");
+
+    if(playerMove == "1")
+    {
+        cout << "Play as (W)hite or (B)lack: ";
+        do
+        {
+            cin >> playerMove;
+            stringToLower(playerMove);
+            if (playerMove == "w" || playerMove == "white")
+                computerPlaysBlack = true;
+
+            else if (playerMove == "b" || playerMove == "black")
+                computerPlaysWhite = true;
+
+        }while(!computerPlaysWhite && !computerPlaysBlack);
+    }
 
     displayHelpMessage();
     //Main game loop
     while (!currentGameState.hasGameEnded())
     {
         //Display the board from the perspective of the player to move
-        if (currentGameState.whiteToMove)
+        if (currentGameState.getWhiteToMove())
         {
             currentGameState.displayBoardWhitePOV();
             cout << "White to move\n";
@@ -100,42 +123,53 @@ int main()
             currentGameState.displayBoardBlackPOV();
             cout << "Black to move\n";
         }
-        //Process user input
-        do {
-            cout << "Enter move: ";
-            cin >> playerMove;
-            stringToLower(playerMove);
+        if (DEBUG)
+            cout << finalScoreGameState(currentGameState) << endl;
 
-            if (playerMove == "h" || playerMove == "help")
-                displayHelpMessage();
-
-            else if (playerMove == "r" || playerMove == "resign")
+        if (currentGameState.getWhiteToMove() && computerPlaysWhite || !currentGameState.getWhiteToMove() && computerPlaysBlack)
+            makeComputerMove(currentGameState);
+        else
+        {
+            //Process user input
+            do
             {
-                currentGameState.resign();
-                hasResigned = true;
-            }
-            else if (playerMove == "d" || playerMove == "draw")
-            {
-                if (currentGameState.whiteToMove)
-                    cout << "White has offered a draw, black do you accept (y)es or (n)o:";
-                else
-                    cout << "Black has offered a draw, white do you accept (y)es or (n)o:";
+                cout << "Enter move: ";
                 cin >> playerMove;
                 stringToLower(playerMove);
-                if (playerMove == "y" || playerMove == "yes")
+
+                if (playerMove == "h" || playerMove == "help")
+                    displayHelpMessage();
+
+                else if (playerMove == "r" || playerMove == "resign")
                 {
-                    currentGameState.gameIsDraw = true;
-                    drawnByAgreement = true;
+                    currentGameState.resign();
+                    hasResigned = true;
+                }
+                else if (playerMove == "d" || playerMove == "draw")
+                {
+                    if (currentGameState.getWhiteToMove())
+                        cout << "White has offered a draw, black do you accept (y)es or (n)o:";
+                    else
+                        cout << "Black has offered a draw, white do you accept (y)es or (n)o:";
+                    cin >> playerMove;
+                    stringToLower(playerMove);
+                    if (playerMove == "y" || playerMove == "yes")
+                    {
+                        currentGameState.declareDraw();
+                        drawnByAgreement = true;
+                    }
+                    else
+                        cout << "Draw declined\n";
                 }
                 else
-                    cout << "Draw declined\n";
-            }
-            else
-                moveHasBeenMade = makePlayerMove(currentGameState, playerMove);
+                    moveHasBeenMade = makePlayerMove(currentGameState, playerMove);
 
-        }while(!moveHasBeenMade && !currentGameState.hasGameEnded());
-    }
-    if (currentGameState.whiteHasWon)
+            } while (!moveHasBeenMade && !currentGameState.hasGameEnded());
+        }
+    }//End of main game loop
+
+    //Display final board position and end of game message
+    if (currentGameState.getWhiteHasWon())
     {
         if (!hasResigned)
         {
@@ -145,7 +179,7 @@ int main()
         else
             cout << "White has won by resignation";
     }
-    else if (currentGameState.blackHasWon)
+    else if (currentGameState.getBlackHasWon())
     {
         if (!hasResigned)
         {
@@ -155,11 +189,11 @@ int main()
         else
             cout << "Black has won by resignation";
     }
-    else if (currentGameState.gameIsDraw)
+    else if (currentGameState.getGameIsDraw())
     {
         if (!drawnByAgreement)
         {
-            if (currentGameState.whiteToMove)
+            if (currentGameState.getWhiteToMove())
                 currentGameState.displayBoardWhitePOV();
             else
                 currentGameState.displayBoardBlackPOV();
@@ -180,13 +214,13 @@ bool makePlayerMove(GameState &currentGameState, const string &playerMove)
         && playerMove[2] >= 'a' && playerMove[2] <= 'h'
         && playerMove[3] >= '1' && playerMove[3] <= '8')
     {
-        //Converts the move into an array of ints, numerically representing the squares on the board
+        //Converts the move into a struct of ints, numerically representing the squares on the board
         move.fromColumn = playerMove[0] - 'a';
         move.fromRow = playerMove[1] - '1';
         move.toColumn = playerMove[2] - 'a';
         move.toRow = playerMove[3] - '1';
         //Stores the null terminator as the promotion if playerMove.length == 4 otherwise stores the promotion
-        if(currentGameState.whiteToMove)
+        if(currentGameState.getWhiteToMove())
             move.promotion = toupper(playerMove[4]);
         else
             move.promotion = playerMove[4];
@@ -216,12 +250,162 @@ void displayHelpMessage()
          << "(d)raw to offer a draw\n"
          << "(h)elp to display this message again" << endl;
 }
+void makeComputerMove(GameState &currentGameState)
+{
+    moveStruct bestMove;
+    int bestScore;
+    int newScore;
+    bool addToListOfGameState = true;
+
+    if (currentGameState.getWhiteToMove())
+    {
+        bestScore = -1000000;
+        for (auto iter = currentGameState.legalMoves.begin(); iter != currentGameState.legalMoves.end(); iter++)
+        {
+            newScore = recursiveScoreMove(*iter, currentGameState, addToListOfGameState, 1);
+            if (newScore > bestScore)
+            {
+                bestScore = newScore;
+                bestMove = *iter;
+            }
+            addToListOfGameState = false;
+        }
+    }
+    else
+    {
+        bestScore = 1000000;
+        for (auto iter = currentGameState.legalMoves.begin(); iter != currentGameState.legalMoves.end(); iter++)
+        {
+            newScore = recursiveScoreMove(*iter, currentGameState, addToListOfGameState, 1);
+            if (newScore < bestScore)
+            {
+                bestScore = newScore;
+                bestMove = *iter;
+            }
+            addToListOfGameState = false;
+        }
+    }
+    currentGameState.makeMove(bestMove, true, false);
+}
+
+int recursiveScoreMove(const moveStruct &move, GameState gameState, bool addPreviousToListOfGameState, int currentDepth)
+{
+    int newScore;
+    int bestScore;
+    bool addToListOfGameState = true;
+
+    //Make the move
+    gameState.makeMove(move, true, addPreviousToListOfGameState);
+
+    if(currentDepth == MAX_COMPUTER_DEPTH)
+        return finalScoreGameState(gameState);
+
+    //Check to see if the game has ended
+    if (gameState.getWhiteHasWon())
+        return 1000000 - currentDepth;
+    else if (gameState.getBlackHasWon())
+        return -1000000 + currentDepth;
+    else if (gameState.getGameIsDraw())
+        return 0;
+
+    if (gameState.getWhiteToMove())
+    {
+        bestScore = -1000000;
+        for (auto iter = gameState.legalMoves.begin(); iter != gameState.legalMoves.end(); iter++)
+        {
+            newScore = recursiveScoreMove(*iter, gameState, addToListOfGameState, currentDepth + 1);
+            if (newScore > bestScore)
+            {
+                bestScore = newScore;
+            }
+            addToListOfGameState = false;
+        }
+    }
+    else
+    {
+        bestScore = 1000000;
+        for (auto iter = gameState.legalMoves.begin(); iter != gameState.legalMoves.end(); iter++)
+        {
+            newScore = recursiveScoreMove(*iter, gameState, addToListOfGameState, currentDepth + 1);
+            if (newScore < bestScore)
+            {
+                bestScore = newScore;
+            }
+            addToListOfGameState = false;
+        }
+    }
+    gameState.previousGameStates->pop_back();
+    return bestScore;
+}
 
 //Scores a games state, without calculating further positions
-float finalScoreGameState(const GameState &gameState)
+int finalScoreGameState(const GameState &gameState)
 {
-    float score = 0;
-    //TODO implement scoring algorithm
+    int score = 0;
+
+    if (gameState.getWhiteHasWon())
+        return 1000000 - MAX_COMPUTER_DEPTH;
+    if (gameState.getBlackHasWon())
+        return -1000000 + MAX_COMPUTER_DEPTH;
+    if (gameState.getGameIsDraw())
+        return 0;
+    //Adjust score based on castling privileges
+    if (gameState.getWhiteKingSideCastlePrivilege())
+        score += 5;
+    if (gameState.getWhiteQueenSideCastlePrivilege())
+        score += 5;
+    if (gameState.getBlackKingSideCastlePrivilege())
+        score -= 5;
+    if (gameState.getBlackQueenSideCastlePrivilege())
+        score -= 5;
+    //Adjust score based on piece position
+    for(int row = 0; row < 8; row++)
+        for(int column = 0; column < 8; column++)
+        {
+            switch (gameState.board[row][column])
+            {
+                case 'P':
+                    score += PAWN_POINTS[row][column];
+                    break;
+                case 'p':
+                    score -= PAWN_POINTS[7 - row][column];
+                    break;
+                case 'K':
+                    score += KING_POINTS[row][column];
+                    break;
+                case 'k':
+                    score -= KING_POINTS[7 - row][column];
+                    break;
+                case 'Q':
+                    score += QUEEN_POINTS[row][column];
+                    break;
+                case 'q':
+                    score -= QUEEN_POINTS[7 - row][column];
+                    break;
+                case 'N':
+                    score += KNIGHT_POINTS[row][column];
+                    break;
+                case 'n':
+                    score -= KNIGHT_POINTS[7 - row][column];
+                    break;
+                case 'R':
+                    score += ROOK_POINTS[row][column];
+                    break;
+                case 'r':
+                    score -= ROOK_POINTS[7 - row][column];
+                    break;
+                case 'B':
+                    score += BISHOP_POINTS[row][column];
+                    break;
+                case 'b':
+                    score -= BISHOP_POINTS[7 - row][column];
+                    break;
+
+                    default:
+                        break;
+            }
+        }
+
     return score;
 }
 
