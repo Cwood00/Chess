@@ -16,11 +16,11 @@ GameState::GameState()
     blackHasWon = false;
     gameIsDraw = false;
     movesSinceLastCaptureOrPawnMove = 0;
+    legalMoves.reserve(60);
     setWhiteLegalMoves();
-    previousGameStates = new list<GameState>;
+
 }
-//The copy constructor does not copy the list of legal moves,
-//and it only does a shallow copy the list of previous game states
+//The copy constructor does not copy the list of legal moves.
 GameState::GameState(const GameState &oldGameState)
 {
     for(int row = 0; row < 8; row++)
@@ -38,7 +38,7 @@ GameState::GameState(const GameState &oldGameState)
     this->blackHasWon = oldGameState.blackHasWon;
     this->gameIsDraw = oldGameState.gameIsDraw;
     this->movesSinceLastCaptureOrPawnMove = oldGameState.movesSinceLastCaptureOrPawnMove;
-    this->previousGameStates = oldGameState.previousGameStates;
+    this->legalMoves.reserve(60);
 }
 
 void GameState::displayBoardWhitePOV() const
@@ -90,25 +90,6 @@ bool GameState::checkForInsufficientMaterial() const
     return true;
 }
 //Makes a move without validating it, or updating any other game data.
-bool GameState::checkForDrawByRepetition() const
-{
-    int repetitions = 1;
-    int movesToCheck = movesSinceLastCaptureOrPawnMove - 1;
-
-    for (auto iter = previousGameStates->rbegin(); movesToCheck > 0; iter++, movesToCheck -=2)
-    {
-        //Ever other can be skipped, as a different player will have the turn
-        iter++;
-        if (*this == *iter)
-        {
-            repetitions++;
-            if (repetitions == 3)
-                return true;
-        }
-    }
-    return false;
-}
-
 void GameState::movePiece(const moveStruct &move)
 {
     char movedPiece = board[move.fromRow][move.fromColumn];
@@ -152,119 +133,6 @@ void GameState::movePiece(const moveStruct &move)
         board[move.toRow][move.toColumn] = move.promotion;
     //Empty the space the piece moved from
     board[move.fromRow][move.fromColumn] = '_';
-}
-//Validates a move, and attempts to make it. Returns true if the move is valid and false otherwise.
-//Also updates other relevant game data.
-bool GameState::makeMove(const moveStruct &move, bool validMove, bool addToListOfGameStates)
-{
-    char movedPiece = board[move.fromRow][move.fromColumn];
-    char movedOnto = board[move.toRow][move.toColumn];
-
-    //Checks to see if the move is in the list of legal moves
-    for (auto iter = legalMoves.begin(); iter != legalMoves.end() && !validMove; iter++)
-        validMove = move.toColumn == iter->toColumn &&
-                    move.toRow == iter->toRow &&
-                    move.fromColumn == iter->fromColumn &&
-                    move.fromRow == iter->fromRow &&
-                    move.promotion == iter->promotion;
-
-    if (validMove)
-    {
-        //Add the current game state to the list of previous game states
-        if (addToListOfGameStates)
-            previousGameStates->emplace_back(*this);
-        //Clear out the list of legal moves
-        legalMoves.clear();
-        //Make the move
-        movePiece(move);
-        //Update castling privileges
-        if (movedPiece == 'K')
-        {
-            whiteKingSideCastlePrivilege = false;
-            whiteQueenSideCastlePrivilege = false;
-        }
-        else if (movedPiece == 'k')
-        {
-            blackKingSideCastlePrivilege = false;
-            blackQueenSideCastlePrivilege = false;
-        }
-        else if (movedPiece == 'R')
-        {
-            if (move.fromColumn == 0)
-                whiteQueenSideCastlePrivilege = false;
-            else if (move.fromColumn == 7)
-                whiteKingSideCastlePrivilege = false;
-        }
-        else if (movedPiece == 'r')
-        {
-            if (move.fromColumn == 0)
-                blackQueenSideCastlePrivilege = false;
-            else if (move.fromColumn == 7)
-                blackKingSideCastlePrivilege = false;
-        }
-        //Update en Passant Square
-        if (movedPiece == 'P' && move.toRow == 3 && move.fromRow == 1)
-        {
-            enPassantRow = 2;
-            enPassantColumn = move.toColumn;
-        }
-        else if (movedPiece == 'p' && move.toRow == 4 && move.fromRow == 6)
-        {
-            enPassantRow = 5;
-            enPassantColumn = move.toColumn;
-        }
-        else
-        {
-            enPassantRow = -1;
-            enPassantColumn = -1;
-        }
-
-        //Change whose move it is
-        whiteToMove = !whiteToMove;
-        //Updates the list of legal moves
-        if (whiteToMove)
-            setWhiteLegalMoves();
-        else
-            setBlackLegalMoves();
-
-        //Check for checkmate or stalemate
-        if (legalMoves.empty())
-        {
-            if (whiteToMove && getWhiteIsInCheck())
-                blackHasWon = true;
-            else if (!whiteToMove && getBlackIsInCheck())
-                whiteHasWon = true;
-            else
-                gameIsDraw = true;
-        }
-        //Update fifty move rule and check for insufficient material if needed
-        else
-        {
-            if (movedOnto != '_')
-            {
-                movesSinceLastCaptureOrPawnMove = 0;
-                gameIsDraw = checkForInsufficientMaterial();
-            }
-            else if (movedPiece == 'p' || movedPiece == 'P')
-            {
-                movesSinceLastCaptureOrPawnMove = 0;
-                if (move.promotion == 'N' || move.promotion == 'n' ||
-                    move.promotion == 'B' || move.promotion == 'b')
-                    gameIsDraw = checkForInsufficientMaterial();
-            }
-            else
-            {
-                movesSinceLastCaptureOrPawnMove++;
-                //100 is used instead of 50, as the 50 moved rule counts both players each making one moves as a single move
-                if (movesSinceLastCaptureOrPawnMove == 100)
-                    gameIsDraw = true;
-            }
-            //Check for draw by repetition
-            if (!gameIsDraw && movesSinceLastCaptureOrPawnMove > 7)
-                gameIsDraw = checkForDrawByRepetition();
-        }
-    }
-    return validMove;
 }
 
 bool GameState::movesIntoCheck(const moveStruct &move, int kingRow, int kingColumn)
@@ -879,7 +747,7 @@ void GameState::setWhiteLegalMoves()
 
     //Appends castling moves to the list of legal moves
     //King side
-    if (whiteKingSideCastlePrivilege && board[0][5] == '_' && board[0][6] == '_' && board[0][7] == 'R' &&
+    if (whiteKingSideCastlePrivilege && board[0][5] == '_' && board[0][6] == '_' &&
         !getWhiteIsInCheck(kingRow, kingColumn))
     {
         notInCheck = true;
@@ -889,7 +757,7 @@ void GameState::setWhiteLegalMoves()
         }
     }
     //Queen side
-    if (whiteQueenSideCastlePrivilege && board[0][3] == '_' && board[0][2] == '_' && board[0][1] == '_' &&board[0][0] == 'R'
+    if (whiteQueenSideCastlePrivilege && board[0][3] == '_' && board[0][2] == '_' && board[0][1] == '_'
     && (notInCheck || !getWhiteIsInCheck(kingRow, kingColumn))
     && !getWhiteIsInCheck(0, 3) && !getWhiteIsInCheck(0, 2))
     {
@@ -1813,11 +1681,6 @@ void GameState::declareDraw()
     gameIsDraw = true;
 }
 
-bool GameState::hasGameEnded() const
-{
-    return whiteHasWon || blackHasWon || gameIsDraw;
-}
-
 bool GameState::operator==(const GameState &rightHandSide) const
 {
     bool areEqual = this->whiteToMove == rightHandSide.whiteToMove &&
@@ -1833,44 +1696,4 @@ bool GameState::operator==(const GameState &rightHandSide) const
             areEqual = this->board[row][column] == rightHandSide.board[row][column];
 
     return areEqual;
-}
-
-bool GameState::getWhiteToMove() const
-{
-    return whiteToMove;
-}
-
-bool GameState::getWhiteHasWon() const
-{
-    return whiteHasWon;
-}
-
-bool GameState::getBlackHasWon() const
-{
-    return blackHasWon;
-}
-
-bool GameState::getGameIsDraw() const
-{
-    return gameIsDraw;
-}
-
-bool GameState::getWhiteKingSideCastlePrivilege() const
-{
-    return whiteKingSideCastlePrivilege;
-}
-
-bool GameState::getWhiteQueenSideCastlePrivilege() const
-{
-    return whiteQueenSideCastlePrivilege;
-}
-
-bool GameState::getBlackKingSideCastlePrivilege() const
-{
-    return blackKingSideCastlePrivilege;
-}
-
-bool GameState::getBlackQueenSideCastlePrivilege() const
-{
-    return blackQueenSideCastlePrivilege;
 }

@@ -3,4 +3,4 @@ project(chess)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(chess main.cpp GameState.cpp GameState.h)
+add_executable(chess main.cpp GameState.cpp GameState.h Game.cpp Game.h)

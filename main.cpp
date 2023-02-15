@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "GameState.h"
+#include "Game.h"
 using namespace std;
 
 #define MAX_COMPUTER_DEPTH 4
@@ -68,7 +68,7 @@ const int BISHOP_POINTS[8][8] = {
 };
 
 //Function prototypes
-bool makePlayerMove(GameState &currentGameState, const string &playerMove);
+bool makePlayerMove(Game &currentGame, const string &playerMove);
 void displayHelpMessage();
 void stringToLower(string &inputString);
 
@@ -77,7 +77,8 @@ const bool DEBUG = true;
 
 int main()
 {
-    GameState currentGameState;
+    Game currentGame;
+    int moveCount = 0;
     bool moveHasBeenMade;
     bool hasResigned = false;
     bool drawnByAgreement = false;
@@ -110,24 +111,22 @@ int main()
 
     displayHelpMessage();
     //Main game loop
-    while (!currentGameState.hasGameEnded())
+    while (!currentGame.hasGameEnded())
     {
         //Display the board from the perspective of the player to move
-        if (currentGameState.getWhiteToMove())
+        if (currentGame.getWhiteToMove())
         {
-            currentGameState.displayBoardWhitePOV();
-            cout << "White to move\n";
+            currentGame.displayBoardWhitePOV();
+            cout << '\n' << currentGame.getGameLength() << ". White to move\n";
         }
         else
         {
-            currentGameState.displayBoardBlackPOV();
-            cout << "Black to move\n";
+            currentGame.displayBoardBlackPOV();
+            cout << '\n' << currentGame.getGameLength() << ". Black to move\n";
         }
-        if (DEBUG)
-            cout << finalScoreGameState(currentGameState) << endl;
 
-        if (currentGameState.getWhiteToMove() && computerPlaysWhite || !currentGameState.getWhiteToMove() && computerPlaysBlack)
-            makeComputerMove(currentGameState);
+        if (currentGame.getWhiteToMove() && computerPlaysWhite || !currentGame.getWhiteToMove() && computerPlaysBlack)
+            makeComputerMove(currentGame);
         else
         {
             //Process user input
@@ -142,12 +141,13 @@ int main()
 
                 else if (playerMove == "r" || playerMove == "resign")
                 {
-                    currentGameState.resign();
+                    currentGame.resign();
                     hasResigned = true;
                 }
                 else if (playerMove == "d" || playerMove == "draw")
                 {
-                    if (currentGameState.getWhiteToMove())
+                    //TODO Add functionality for CPU accepting draw
+                    if (currentGame.getWhiteToMove())
                         cout << "White has offered a draw, black do you accept (y)es or (n)o:";
                     else
                         cout << "Black has offered a draw, white do you accept (y)es or (n)o:";
@@ -155,55 +155,55 @@ int main()
                     stringToLower(playerMove);
                     if (playerMove == "y" || playerMove == "yes")
                     {
-                        currentGameState.declareDraw();
+                        currentGame.declareDraw();
                         drawnByAgreement = true;
                     }
                     else
                         cout << "Draw declined\n";
                 }
                 else
-                    moveHasBeenMade = makePlayerMove(currentGameState, playerMove);
+                    moveHasBeenMade = makePlayerMove(currentGame, playerMove);
 
-            } while (!moveHasBeenMade && !currentGameState.hasGameEnded());
+            } while (!moveHasBeenMade && !currentGame.hasGameEnded());
         }
     }//End of main game loop
 
     //Display final board position and end of game message
-    if (currentGameState.getWhiteHasWon())
+    if (currentGame.getWhiteHasWon())
     {
         if (!hasResigned)
         {
-            currentGameState.displayBoardBlackPOV();
+            currentGame.displayBoardBlackPOV();
             cout << "White has won by Checkmate";
         }
         else
             cout << "White has won by resignation";
     }
-    else if (currentGameState.getBlackHasWon())
+    else if (currentGame.getBlackHasWon())
     {
         if (!hasResigned)
         {
-            currentGameState.displayBoardWhitePOV();
+            currentGame.displayBoardWhitePOV();
             cout << "Black has won by Checkmate";
         }
         else
             cout << "Black has won by resignation";
     }
-    else if (currentGameState.getGameIsDraw())
+    else if (currentGame.getGameIsDraw())
     {
         if (!drawnByAgreement)
         {
-            if (currentGameState.getWhiteToMove())
-                currentGameState.displayBoardWhitePOV();
+            if (currentGame.getWhiteToMove())
+                currentGame.displayBoardWhitePOV();
             else
-                currentGameState.displayBoardBlackPOV();
+                currentGame.displayBoardBlackPOV();
         }
         cout << "The game is a draw";
     }
     return 0;
 }
 
-bool makePlayerMove(GameState &currentGameState, const string &playerMove)
+bool makePlayerMove(Game &currentGame, const string &playerMove)
 {
     moveStruct move;
     bool validMove = false;
@@ -220,12 +220,12 @@ bool makePlayerMove(GameState &currentGameState, const string &playerMove)
         move.toColumn = playerMove[2] - 'a';
         move.toRow = playerMove[3] - '1';
         //Stores the null terminator as the promotion if playerMove.length == 4 otherwise stores the promotion
-        if(currentGameState.getWhiteToMove())
+        if(currentGame.getWhiteToMove())
             move.promotion = toupper(playerMove[4]);
         else
             move.promotion = playerMove[4];
 
-        validMove = currentGameState.makeMove(move);
+        validMove = currentGame.makeMove(move);
 
         if(!validMove)
             cout << "Illegal move\n";
@@ -250,91 +250,98 @@ void displayHelpMessage()
          << "(d)raw to offer a draw\n"
          << "(h)elp to display this message again" << endl;
 }
-void makeComputerMove(GameState &currentGameState)
+void makeComputerMove(Game &currentGame)
 {
     moveStruct bestMove;
     int bestScore;
     int newScore;
-    bool addToListOfGameState = true;
 
-    if (currentGameState.getWhiteToMove())
+    if (currentGame.getWhiteToMove())
     {
         bestScore = -1000000;
-        for (auto iter = currentGameState.legalMoves.begin(); iter != currentGameState.legalMoves.end(); iter++)
+        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
         {
-            newScore = recursiveScoreMove(*iter, currentGameState, addToListOfGameState, 1);
+            newScore = recursiveScoreMove(*iter, currentGame, 1);
             if (newScore > bestScore)
             {
                 bestScore = newScore;
                 bestMove = *iter;
             }
-            addToListOfGameState = false;
         }
     }
     else
     {
         bestScore = 1000000;
-        for (auto iter = currentGameState.legalMoves.begin(); iter != currentGameState.legalMoves.end(); iter++)
+        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
         {
-            newScore = recursiveScoreMove(*iter, currentGameState, addToListOfGameState, 1);
+            newScore = recursiveScoreMove(*iter, currentGame, 1);
             if (newScore < bestScore)
             {
                 bestScore = newScore;
                 bestMove = *iter;
             }
-            addToListOfGameState = false;
         }
     }
-    currentGameState.makeMove(bestMove, true, false);
+    currentGame.makeMove(bestMove, true);
 }
 
-int recursiveScoreMove(const moveStruct &move, GameState gameState, bool addPreviousToListOfGameState, int currentDepth)
+int recursiveScoreMove(const moveStruct &move, Game currentGame, int currentDepth)
 {
     int newScore;
     int bestScore;
-    bool addToListOfGameState = true;
 
     //Make the move
-    gameState.makeMove(move, true, addPreviousToListOfGameState);
+    currentGame.makeMove(move, true);
 
-    if(currentDepth == MAX_COMPUTER_DEPTH)
-        return finalScoreGameState(gameState);
+    if (currentDepth == MAX_COMPUTER_DEPTH)
+    {
+        bestScore = finalScoreGameState(*currentGame.currentGameState);
+        currentGame.undoMove();
+        return bestScore;
+    }
 
-    //Check to see if the game has ended
-    if (gameState.getWhiteHasWon())
+    //Check to see if the currentGame has ended
+    if (currentGame.getWhiteHasWon())
+    {
+        currentGame.undoMove();
         return 1000000 - currentDepth;
-    else if (gameState.getBlackHasWon())
+    }
+    else if (currentGame.getBlackHasWon())
+    {
+        currentGame.undoMove();
         return -1000000 + currentDepth;
-    else if (gameState.getGameIsDraw())
+    }
+    else if (currentGame.getGameIsDraw())
+    {
+        currentGame.undoMove();
         return 0;
+    }
 
-    if (gameState.getWhiteToMove())
+    if (currentGame.getWhiteToMove())
     {
         bestScore = -1000000;
-        for (auto iter = gameState.legalMoves.begin(); iter != gameState.legalMoves.end(); iter++)
+        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
         {
-            newScore = recursiveScoreMove(*iter, gameState, addToListOfGameState, currentDepth + 1);
+            newScore = recursiveScoreMove(*iter, currentGame, currentDepth + 1);
             if (newScore > bestScore)
             {
                 bestScore = newScore;
             }
-            addToListOfGameState = false;
         }
     }
     else
     {
         bestScore = 1000000;
-        for (auto iter = gameState.legalMoves.begin(); iter != gameState.legalMoves.end(); iter++)
+        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
         {
-            newScore = recursiveScoreMove(*iter, gameState, addToListOfGameState, currentDepth + 1);
+            newScore = recursiveScoreMove(*iter, currentGame, currentDepth + 1);
             if (newScore < bestScore)
             {
                 bestScore = newScore;
             }
-            addToListOfGameState = false;
         }
     }
-    gameState.previousGameStates->pop_back();
+    currentGame.undoMove();
     return bestScore;
 }
 
@@ -343,21 +350,21 @@ int finalScoreGameState(const GameState &gameState)
 {
     int score = 0;
 
-    if (gameState.getWhiteHasWon())
+    if (gameState.whiteHasWon)
         return 1000000 - MAX_COMPUTER_DEPTH;
-    if (gameState.getBlackHasWon())
+    if (gameState.blackHasWon)
         return -1000000 + MAX_COMPUTER_DEPTH;
-    if (gameState.getGameIsDraw())
+    if (gameState.gameIsDraw)
         return 0;
     //Adjust score based on castling privileges
-    if (gameState.getWhiteKingSideCastlePrivilege())
-        score += 5;
-    if (gameState.getWhiteQueenSideCastlePrivilege())
-        score += 5;
-    if (gameState.getBlackKingSideCastlePrivilege())
-        score -= 5;
-    if (gameState.getBlackQueenSideCastlePrivilege())
-        score -= 5;
+    if (gameState.whiteKingSideCastlePrivilege)
+        score += 8;
+    if (gameState.whiteQueenSideCastlePrivilege)
+        score += 8;
+    if (gameState.blackKingSideCastlePrivilege)
+        score -= 8;
+    if (gameState.blackQueenSideCastlePrivilege)
+        score -= 8;
     //Adjust score based on piece position
     for(int row = 0; row < 8; row++)
         for(int column = 0; column < 8; column++)

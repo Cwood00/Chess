@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <string>
-#include <list>
+#include <vector>
 using namespace std;
 
 struct moveStruct
@@ -45,8 +45,7 @@ private:
             {'p','p','p','p','p','p','p','p'},
             {'r','n','b','q','k','b','n','r'}
     };
-    list<moveStruct> legalMoves;
-    list<GameState> *previousGameStates;
+
     bool whiteKingSideCastlePrivilege;
     bool whiteQueenSideCastlePrivilege;
     bool blackKingSideCastlePrivilege;
@@ -67,34 +66,22 @@ private:
     bool getWhiteIsInCheck(int kingRow, int kingColumn) const;
     bool getBlackIsInCheck(int kingRow, int kingColumn) const;
     bool checkForInsufficientMaterial() const;
-    bool checkForDrawByRepetition() const;
 
 public:
+    vector<moveStruct> legalMoves;
 
     GameState();
     GameState(const GameState &oldGameState);
     void displayBoardWhitePOV() const;
     void displayBoardBlackPOV() const;
-    bool getWhiteToMove() const;
-    bool getWhiteHasWon() const;
-    bool getBlackHasWon() const;
-    bool getGameIsDraw () const;
-    bool getWhiteKingSideCastlePrivilege() const;
-    bool getWhiteQueenSideCastlePrivilege() const;
-    bool getBlackKingSideCastlePrivilege() const;
-    bool getBlackQueenSideCastlePrivilege() const;
-    bool makeMove(const moveStruct &move, bool validMove = false, bool addToListOfGameStates = true);
     void resign();
     void declareDraw();
-    bool hasGameEnded() const;
     bool getWhiteIsInCheck() const;
     bool getBlackIsInCheck() const;
     bool operator == (const GameState &rightHandSide) const;
 
-    friend int recursiveScoreMove(const moveStruct &move, GameState gameState, bool addToListOfGameState, int currentDepth);
-    friend void makeComputerMove(GameState &currentGameState);
     friend int finalScoreGameState(const GameState &gameState);
-
+    friend class Game;
 };
 
 #endif //CHESS_GAMESTATE_H
