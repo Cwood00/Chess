@@ -74,16 +74,27 @@ bool GameState::checkForInsufficientMaterial() const
     for (int row = 0; row < 8; row++)
         for(int column = 0; column < 8; column++)
         {
-            piece = board[row][column];
-            //If there are is a rook, a queen, or a pawn then there is sufficient material
-            if (piece == 'R' || piece== 'r' || piece == 'Q' || piece == 'q' || piece == 'P' || piece == 'p')
-                return false;
-            //If there is a total of at lest two bishops and/or knights there is sufficient material
-            if (piece == 'B' || piece == 'b' || piece == 'N' || piece == 'n')
+            switch (board[row][column])
             {
-                minorPieces++;
-                if (minorPieces == 2)
-                    return  false;
+                //If there are is a rook, a queen, or a pawn then there is sufficient material
+                case 'R':
+                case 'r':
+                case 'Q':
+                case 'q':
+                case 'P':
+                case 'p':
+                    return false;
+                    //If there is a total of at lest two bishops and/or knights there is sufficient material
+                    //todo account for bishops on the same color square
+                case 'B':
+                case 'b':
+                case 'N':
+                case 'n':
+                    minorPieces++;
+                    if (minorPieces == 2)
+                        return false;
+                default:
+                    break;
             }
         }
     //If the conditions for sufficient material where not found, then there is insufficient material

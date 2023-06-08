@@ -39,6 +39,7 @@ public:
 
     friend int recursiveScoreMove(const moveStruct &move, Game currentGame, int currentDepth);
     friend void makeComputerMove(Game &currentGame);
+    friend bool computerAcceptDraw(Game &currentGame);
 };
 
 

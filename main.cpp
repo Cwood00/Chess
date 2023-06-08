@@ -3,7 +3,8 @@
 #include "Game.h"
 using namespace std;
 
-#define MAX_COMPUTER_DEPTH 4
+#define MAX_COMPUTER_DEPTH 4 //Maximum depth the computer will search the game tree
+#define DRAW_TOLERANCE 150 //The amount the computer needs to be losing by to accept a draw
 
 //Constants used by the computer to determine the value of having a piece on a specific square
 const int PAWN_POINTS[8][8] = {
@@ -69,6 +70,7 @@ const int BISHOP_POINTS[8][8] = {
 
 //Function prototypes
 bool makePlayerMove(Game &currentGame, const string &playerMove);
+bool computerAcceptDraw(Game &currentGame);
 void displayHelpMessage();
 void stringToLower(string &inputString);
 
@@ -78,7 +80,6 @@ const bool DEBUG = true;
 int main()
 {
     Game currentGame;
-    int moveCount = 0;
     bool moveHasBeenMade;
     bool hasResigned = false;
     bool drawnByAgreement = false;
@@ -95,9 +96,9 @@ int main()
 
     if(playerMove == "1")
     {
-        cout << "Play as (W)hite or (B)lack: ";
         do
         {
+            cout << "Play as (W)hite or (B)lack: ";
             cin >> playerMove;
             stringToLower(playerMove);
             if (playerMove == "w" || playerMove == "white")
@@ -146,20 +147,34 @@ int main()
                 }
                 else if (playerMove == "d" || playerMove == "draw")
                 {
-                    //TODO Add functionality for CPU accepting draw
-                    if (currentGame.getWhiteToMove())
-                        cout << "White has offered a draw, black do you accept (y)es or (n)o:";
-                    else
-                        cout << "Black has offered a draw, white do you accept (y)es or (n)o:";
-                    cin >> playerMove;
-                    stringToLower(playerMove);
-                    if (playerMove == "y" || playerMove == "yes")
+                    //Offering a draw to the computer
+                    if(computerPlaysBlack || computerPlaysWhite)
                     {
-                        currentGame.declareDraw();
-                        drawnByAgreement = true;
+                        if(computerAcceptDraw(currentGame))
+                        {
+                            currentGame.declareDraw();
+                            drawnByAgreement = true;
+                        }
+                        else
+                            cout << "Draw declined" << endl;
                     }
+                    //Offering a draw to a human player
                     else
-                        cout << "Draw declined\n";
+                    {
+                        if (currentGame.getWhiteToMove())
+                            cout << "White has offered a draw, black do you accept (y)es or (n)o:";
+                        else
+                            cout << "Black has offered a draw, white do you accept (y)es or (n)o:";
+                        cin >> playerMove;
+                        stringToLower(playerMove);
+                        if (playerMove == "y" || playerMove == "yes")
+                        {
+                            currentGame.declareDraw();
+                            drawnByAgreement = true;
+                        }
+                        else
+                            cout << "Draw declined" << endl;
+                    }
                 }
                 else
                     moveHasBeenMade = makePlayerMove(currentGame, playerMove);
@@ -259,32 +274,64 @@ void makeComputerMove(Game &currentGame)
     if (currentGame.getWhiteToMove())
     {
         bestScore = -1000000;
-        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
+        for (const auto &move : currentGame.currentGameState->legalMoves)
         {
-            newScore = recursiveScoreMove(*iter, currentGame, 1);
+            newScore = recursiveScoreMove(move, currentGame, 1);
             if (newScore > bestScore)
             {
                 bestScore = newScore;
-                bestMove = *iter;
+                bestMove = move;
             }
         }
     }
     else
     {
         bestScore = 1000000;
-        for (auto iter = currentGame.currentGameState->legalMoves.begin(); iter != currentGame.currentGameState->legalMoves.end(); iter++)
+        for (const auto &move : currentGame.currentGameState->legalMoves)
         {
-            newScore = recursiveScoreMove(*iter, currentGame, 1);
+            newScore = recursiveScoreMove(move, currentGame, 1);
             if (newScore < bestScore)
             {
                 bestScore = newScore;
-                bestMove = *iter;
+                bestMove = move;
             }
         }
     }
     currentGame.makeMove(bestMove, true);
 }
+bool computerAcceptDraw(Game &currentGame)
+{
+    int positionScore;
+    int newScore;
 
+    //Computer is playing as black
+    if (currentGame.getWhiteToMove())
+    {
+        positionScore = -1000000;
+        for (const auto &move : currentGame.currentGameState->legalMoves)
+        {
+            newScore = recursiveScoreMove(move, currentGame, 1);
+            if (newScore > positionScore)
+                positionScore = newScore;
+        }
+        if (positionScore > DRAW_TOLERANCE)
+            return true;
+    }
+    //Computer is playing as white
+    else
+    {
+        positionScore = 1000000;
+        for (const auto &move : currentGame.currentGameState->legalMoves)
+        {
+            newScore = recursiveScoreMove(move, currentGame, 1);
+            if (newScore < positionScore)
+                positionScore = newScore;
+        }
+        if (positionScore < -DRAW_TOLERANCE)
+            return true;
+    }
+    return false;
+}
 int recursiveScoreMove(const moveStruct &move, Game currentGame, int currentDepth)
 {
     int newScore;
