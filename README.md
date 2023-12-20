@@ -17,9 +17,9 @@ of the piece being moved, and cd represents the column and the row of the
 destination square, respectively. a and c should be letters a-h, well b and
 d should be numbers between 1-8. e.g. e2e4. To castle move the king two
 squares in the direction of the rook. To promote a pawn add the letter of
-the piece being promoted to at the end of the move. e.g. a7a8Q
+the piece being promoted to at the end of the move. e.g. a7a8Q  
 
-Other commands
-(r)esign to resign
-(d)raw to offer a draw
-(h)elp to display this message again
+Other commands  
+(r)esign to resign  
+(d)raw to offer a draw  
+(h)elp to display help message  
